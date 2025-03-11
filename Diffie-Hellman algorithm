@@ -1,0 +1,14 @@
+import random 
+def key_exchange(p,g,private_x,private_y):
+    public_x=pow(g, private_x,p)  
+    public_y=pow(g,private_y,p)  
+    secret_x=pow(public_y,private_x,p)  
+    secret_y=pow(public_x,private_y,p) 
+    return secret_x,secret_y
+p=7
+g=8
+private_x=random.randint(1,p-1)
+private_y=random.randint(1,p-1)
+shared_x, shared_y = key_exchange(p, g, private_x, private_y)
+print("Shared secret key by Alice:", shared_x)
+print("Shared secret key by Bob:", shared_y)
