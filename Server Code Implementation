@@ -1,0 +1,54 @@
+import socket
+import random
+from Crypto.Cipher import AES
+import hashlib
+
+# Function to generate a shared secret key
+def diffie_hellman_key_exchange(p, g, private_key, received_public_key):
+    public_key = pow(g, private_key, p)  # g^private_key mod p
+    shared_secret = pow(received_public_key, private_key, p)  # (received_public^private) mod p
+    return shared_secret, public_key
+
+# Function to derive AES key from shared secret
+def derive_aes_key(shared_secret):
+    return hashlib.sha256(str(shared_secret).encode()).digest()
+
+# Function to decrypt a message using AES
+def decrypt_message(ciphertext, key):
+    cipher = AES.new(key, AES.MODE_EAX, nonce=ciphertext[:16])
+    decrypted_text = cipher.decrypt(ciphertext[16:])
+    return decrypted_text.decode()
+
+# Server setup
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.bind(("localhost", 5555))
+server.listen(1)
+print("Server is waiting for connection...")
+
+conn, addr = server.accept()
+print(f"Connected to: {addr}")
+
+# Diffie-Hellman Parameters
+p = 23
+g = 5
+private_key = random.randint(2, p - 2)
+
+# Receive client's public key
+client_public_key = int(conn.recv(1024).decode())
+
+# Compute shared secret and send public key to client
+shared_secret, public_key = diffie_hellman_key_exchange(p, g, private_key, client_public_key)
+conn.send(str(public_key).encode())
+
+# Derive AES key
+aes_key = derive_aes_key(shared_secret)
+
+# Receive encrypted message
+encrypted_message = conn.recv(1024)
+
+# Decrypt message
+decrypted_message = decrypt_message(encrypted_message, aes_key)
+print(f"Decrypted Message: {decrypted_message}")
+
+conn.close()
+server.close()
